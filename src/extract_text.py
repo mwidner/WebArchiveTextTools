@@ -34,8 +34,9 @@ def get_site_info(csvfile):
 
 def parse_selector(selector):
   '''
-  The selectors in the CSV file should be JSON format
-  tag: FOO, class: BAR
+  The selectors in the CSV file should be JSON
+  example: '{"tag": "FOO", "attrs": {"class": "BAR"}}'
+  Format for BeautifulSoup's find_all() function
   '''
   return json.loads(selector)
 
