@@ -1,0 +1,5 @@
+name,url,paths,title,author,date,content
+'Elysee','www.elysee.fr','','title','','span.article-date','div.article div.text'
+'Front National','www.frontnational.com','','h2#pk_page_title','span.bio_description','div.blog_top_meta','div.pk_two_third-blog'
+'Alain Juppé','www.al1jup.com','/category/propositions,/category/reflexion,/en_bref','title','div.datePublication strong','div.datePublication','div.contenuArticle'
+'Les Républicains','www.republicains.fr','','title','div.content p strong','div.publish span.date','div.content'
