@@ -19,7 +19,7 @@ from bs4 import BeautifulSoup
 
 # Re-usable map to strip out punctuation from a string
 # Convert all punctuation to underscores
-remove_punct_map = dict.fromkeys(map('_', string.punctuation + '’'))
+remove_punct_map = dict.fromkeys(map(ord, string.punctuation.replace('_', '') + '’'))
 
 def get_settings():
   parser = argparse.ArgumentParser(description='Write individual HTML files from HTML files')
@@ -27,6 +27,7 @@ def get_settings():
   parser.add_argument('-s', '--sites', dest='site_info', required=True, help='A CSV file of crawled sites, metadata, and DOM structure for extraction')
   parser.add_argument('-o', dest='output_dir', required=True,
                    help='Output directory for results')
+  parser.add_argument('-w', '--words', dest='word_count', required=False, help='Minimum word count to save. Texts below this threshold will be ignored.')
   return parser.parse_args()
 
 def get_site_info(csvfile):
@@ -37,46 +38,50 @@ def get_site_info(csvfile):
       site_info.append(row)
   return site_info
 
-def find_files(root, subdirs, files):
+def find_files(walkdir, paths_to_parse):
   '''
-  Find files to parse
+  Find files from which to extract text
   '''
   files_to_parse = list()
-  for subdir in subdirs:
-    # Get all files in the sub directories, too
-    path = os.path.join(root, subdir)
-    files.extend([os.path.join(path, f) for f in os.listdir(path) if os.path.isfile(os.path.join(path, f))])
-  for filename in files:
-    files_to_parse.append(os.path.join(root,filename))
+
+  for root, subdirs, files in os.walk(walkdir):
+    # grab just the path(s) we want to parse
+    # if none defined, get all
+    # if not len(paths_to_parse) or root.replace(walkdir,'') in paths_to_parse or subdirs in paths_to_parse:
+    for filename in files:
+      files_to_parse.append(os.path.join(root, filename))
   return files_to_parse
 
-def generate_unique_filename(filename, title):
+def generate_unique_filename(corpus_dir, filename, title):
   # create a unique output filename based on doc title and input file
   filename = os.path.basename(filename)
-  unique = filename.lower().translate(remove_punct_map).strip().replace(' ', '_')
+  unique = title[:100].lower().translate(remove_punct_map).strip().replace(' ', '_')
   unique += '_'
   unique += hashlib.md5(filename.encode('utf-8')).hexdigest()
-  return unique
+  return os.path.join(corpus_dir, unique)
 
-def extract_text(site_info, input_file, corpus_dir):
+def clean_string(string):
+  # Clean up a string of newlines, etc.
+  return string.replace('\n', '')
+
+def extract_text(site_info, input_file, corpus_dir, word_count=0):
   '''
   Extract the actual text from the HTML
   Write out file with text content
+  Return extracted metadata about text
   '''
   results = dict()
-  soup = BeautifulSoup(open(input_file), 'html.parser')
+  try:
+    soup = BeautifulSoup(open(input_file, encoding="utf-8"), 'html.parser')
+  except UnicodeDecodeError as err:
+    # print(input_file + ' is not UTF8', err)
+    return
+
   if soup is None:
     return
-  if soup.title is not None:
-    results['title'] = soup.title.contents[0]
-    print(results['title'])
-    # clean up the title
-    results['filename'] = os.path.join(corpus_dir, generate_unique_filename(input_file, results['title']))
-  else:
-    results['title'] = ''
-    results['filename'] = ''
+
   # Fields in CSV with BeautifulSoup select() options
-  for item in ['date','author','content']:
+  for item in ['title','date','author','content']:
     results[item] = ''
     if (not len(site_info[item])):
       continue
@@ -84,50 +89,51 @@ def extract_text(site_info, input_file, corpus_dir):
     if contents is not None and len(contents):
       # Assume only the first result is relevant
       # BS4 returns a list of results even if only 1 found
-      results[item] = contents[0].getText()
-  if (len(results['title'])):
+      results[item] = clean_string(contents[0].getText())
+
+  results['word_count'] = len(results['content'].split())
+  results['filename'] = generate_unique_filename(corpus_dir, input_file, results['title'])
+  if os.path.isfile(results['filename']):
+    return
+
+  if (len(results['title']) and results['word_count'] >= int(word_count)):
     with open(results['filename'], 'w') as content:
       content.write(str(results['content']))
-  return results
+    return results
+  return None
 
-
-def get_texts(input_dir, site_info, corpus_dir):
+def get_filenames(input_dir, site_info, corpus_dir):
   '''
   Find matching directories that have HTML to parse
   Get a list of files from them
-  Then extract text content, with metadata
-  Return results
   '''
   text = list()
   # warcat extracts to subdirs by site URL
   walkdir = os.path.join(os.path.abspath(input_dir), site_info['url'])
   # NB: paths in CSV should not have a trailing slash
   paths_to_parse = site_info['paths'].split(',')
-  for root, subdirs, files in os.walk(walkdir):
-    # grab just the path(s) we want to parse
-    if root.replace(walkdir,'') in paths_to_parse or subdirs in paths_to_parse:
-        files_to_parse = find_files(root, subdirs, files)
-  for filename in files_to_parse:
-    # if (not filename.endswith('actualites_immigration-reunion_travail_20150916') ):
-    #   continue
-    # BUG: Possible duplicate files may overwrite existing content
-    text.append(extract_text(site_info, filename, corpus_dir))
-  return text
+  files_to_parse = find_files(walkdir, paths_to_parse)
+  return files_to_parse
+
+def get_metadata_filename(path):
+  filename = os.path.join(path, 'metadata.csv')
+  if (not os.path.isfile(filename)):
+    with open(filename, 'w') as csvfile:
+      metadata = csv.writer(csvfile, quotechar='|', quoting=csv.QUOTE_ALL)
+      metadata.writerow(['site', 'title', 'date', 'author', 'filename', 'word_count'])
+  return filename
 
 def write_metadata(path, results):
+  metadata_filename = get_metadata_filename(path)
   # map to remove all punctuation from filenames
-  with open(os.path.join(path, 'metadata.csv'), 'w') as csvfile:
+  with open(metadata_filename, 'a') as csvfile:
     metadata = csv.writer(csvfile, quotechar='|', quoting=csv.QUOTE_ALL)
-    metadata.writerow(['site', 'title', 'date', 'author', 'filename'])
-    for site, rows in results.items():
-      for row in rows:
-        try:
-          metadata.writerow([site, row['title'], row['date'], row['author'], row['filename']])
-        except KeyError as err:
-          print('Could not write row. Missing data: ', row, err)
+    try:
+      metadata.writerow([results['site'], results['title'], results['date'], results['author'], results['filename'], results['word_count']])
+    except KeyError as err:
+      print('Could not write row. Missing data: ', results, err)
 
 def main():
-  results = dict()
   settings = get_settings()
   site_info = get_site_info(settings.site_info)
 
@@ -137,9 +143,18 @@ def main():
     os.makedirs(corpus_dir)
 
   for site in site_info:
+    count = 0
     # NB: Will clobber existing results if multiple site definitions
-    results[site['name']] = get_texts(settings.input_dir, site, corpus_dir)
-  write_metadata(settings.output_dir, results)
+    print("Processing {}".format(site['name']))
+    files = get_filenames(settings.input_dir, site, corpus_dir)
+    for filename in files:
+      results = extract_text(site, filename, corpus_dir, settings.word_count)
+      if (results is not None):
+        count += 1
+        results['site'] = site['name']
+        write_metadata(settings.output_dir, results)
+    print("{} total files. {} processed.".format(len(files), count))
+
 
 if __name__ == '__main__':
   if sys.version_info[0] != 3:
