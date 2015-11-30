@@ -27,15 +27,14 @@ def get_settings():
   parser.add_argument('-s', '--sites', dest='site_info', required=True, help='A CSV file of crawled sites, metadata, and DOM structure for extraction')
   parser.add_argument('-o', dest='output_dir', required=True,
                    help='Output directory for results')
-  parser.add_argument('-w', '--words', dest='word_count', required=False, help='Minimum word count to save. Texts below this threshold will be ignored.')
+  parser.add_argument('-w', '--words', dest='word_count', default=0,required=False, help='Minimum word count to save. Texts below this threshold will be ignored.')
   return parser.parse_args()
 
 def get_site_info(csvfile):
   site_info = list()
   with open(csvfile) as f:
-    reader = csv.DictReader(f, delimiter=',', quotechar="'")
-    for row in reader:
-      site_info.append(row)
+    reader = csv.DictReader((row for row in f if not row.startswith('#')), delimiter=',', quotechar="'")
+    site_info = [row for row in reader]
   return site_info
 
 def find_files(walkdir, paths_to_parse):
@@ -64,6 +63,16 @@ def clean_string(string):
   # Clean up a string of newlines, etc.
   return string.replace('\n', '')
 
+def get_original_url(site_info, filename):
+  '''
+  Get the original URL
+  Based on directory structure of an extract WARC
+  '''
+  base_url = site_info['site']
+  if base_url in filename:
+    index = filename.find(base_url)
+    return os.path.dirname(filename[index:])
+
 def extract_text(site_info, input_file, corpus_dir, word_count=0):
   '''
   Extract the actual text from the HTML
@@ -78,6 +87,10 @@ def extract_text(site_info, input_file, corpus_dir, word_count=0):
     return
 
   if soup is None:
+    return
+
+  # Skip page if there's a filter and it isn't matched
+  if len(site_info['filter']) and not len(soup.select(site_info['filter'])):
     return
 
   # Fields in CSV with BeautifulSoup select() options
@@ -96,6 +109,9 @@ def extract_text(site_info, input_file, corpus_dir, word_count=0):
   if os.path.isfile(results['filename']):
     return
 
+  # Save the original URL
+  results['url'] = get_original_url(site_info, input_file)
+
   if (len(results['title']) and results['word_count'] >= int(word_count)):
     with open(results['filename'], 'w') as content:
       content.write(str(results['content']))
@@ -109,7 +125,7 @@ def get_filenames(input_dir, site_info, corpus_dir):
   '''
   text = list()
   # warcat extracts to subdirs by site URL
-  walkdir = os.path.join(os.path.abspath(input_dir), site_info['url'])
+  walkdir = os.path.join(os.path.abspath(input_dir), site_info['site'])
   # NB: paths in CSV should not have a trailing slash
   paths_to_parse = site_info['paths'].split(',')
   files_to_parse = find_files(walkdir, paths_to_parse)
@@ -120,7 +136,7 @@ def get_metadata_filename(path):
   if (not os.path.isfile(filename)):
     with open(filename, 'w') as csvfile:
       metadata = csv.writer(csvfile, quotechar='|', quoting=csv.QUOTE_ALL)
-      metadata.writerow(['site', 'title', 'date', 'author', 'filename', 'word_count'])
+      metadata.writerow(['site', 'url', 'title', 'date', 'author', 'filename', 'word_count'])
   return filename
 
 def write_metadata(path, results):
@@ -129,7 +145,7 @@ def write_metadata(path, results):
   with open(metadata_filename, 'a') as csvfile:
     metadata = csv.writer(csvfile, quotechar='|', quoting=csv.QUOTE_ALL)
     try:
-      metadata.writerow([results['site'], results['title'], results['date'], results['author'], results['filename'], results['word_count']])
+      metadata.writerow([results['site'], results['url'], results['title'], results['date'], results['author'], results['filename'], results['word_count']])
     except KeyError as err:
       print('Could not write row. Missing data: ', results, err)
 
