@@ -33,7 +33,7 @@ def get_settings():
 def get_site_info(csvfile):
   site_info = list()
   with open(csvfile) as f:
-    reader = csv.DictReader((row for row in f if not row.startswith('#')), delimiter=',', quotechar="'")
+    reader = csv.DictReader((row for row in f if not row.startswith('#')), skipinitialspace=True, delimiter=',', quotechar="'")
     site_info = [row for row in reader]
   return site_info
 
@@ -46,18 +46,32 @@ def find_files(walkdir, paths_to_parse):
   for root, subdirs, files in os.walk(walkdir):
     # grab just the path(s) we want to parse
     # if none defined, get all
-    # if not len(paths_to_parse) or root.replace(walkdir,'') in paths_to_parse or subdirs in paths_to_parse:
-    for filename in files:
-      files_to_parse.append(os.path.join(root, filename))
+    if not len(paths_to_parse) or root.replace(walkdir,'').startswith(tuple(paths_to_parse)):
+      for filename in files:
+        files_to_parse.append(os.path.join(root, filename))
   return files_to_parse
 
-def generate_unique_filename(corpus_dir, filename, title):
+def get_filenames(input_dir, site_info, corpus_dir):
+  '''
+  Find matching directories that have HTML to parse
+  Get a list of files from them
+  '''
+  text = list()
+  # warcat extracts to subdirs by site URL
+  walkdir = os.path.join(os.path.abspath(input_dir), site_info['site'])
+  # NB: paths in CSV should not have a trailing slash
+  paths_to_parse = site_info['paths'].split(',')
+  files_to_parse = find_files(walkdir, paths_to_parse)
+  return files_to_parse
+
+def generate_unique_filename(corpus_dir, sitename, filename, title):
   # create a unique output filename based on doc title and input file
   filename = os.path.basename(filename)
   unique = title[:100].lower().translate(remove_punct_map).strip().replace(' ', '_')
   unique += '_'
   unique += hashlib.md5(filename.encode('utf-8')).hexdigest()
-  return os.path.join(corpus_dir, unique)
+  sitename = sitename.lower().translate(remove_punct_map).strip().replace(' ', '_')
+  return os.path.join(corpus_dir, sitename, unique)
 
 def clean_string(string):
   # Clean up a string of newlines, etc.
@@ -105,7 +119,7 @@ def extract_text(site_info, input_file, corpus_dir, word_count=0):
       results[item] = clean_string(contents[0].getText())
 
   results['word_count'] = len(results['content'].split())
-  results['filename'] = generate_unique_filename(corpus_dir, input_file, results['title'])
+  results['filename'] = generate_unique_filename(corpus_dir, site_info['name'], input_file, results['title'])
   if os.path.isfile(results['filename']):
     return
 
@@ -113,23 +127,13 @@ def extract_text(site_info, input_file, corpus_dir, word_count=0):
   results['url'] = get_original_url(site_info, input_file)
 
   if (len(results['title']) and results['word_count'] >= int(word_count)):
+    # Ensure the path exists
+    if not os.path.isdir(os.path.dirname(results['filename'])):
+      os.makedirs(os.path.dirname(results['filename']))
     with open(results['filename'], 'w') as content:
       content.write(str(results['content']))
     return results
   return None
-
-def get_filenames(input_dir, site_info, corpus_dir):
-  '''
-  Find matching directories that have HTML to parse
-  Get a list of files from them
-  '''
-  text = list()
-  # warcat extracts to subdirs by site URL
-  walkdir = os.path.join(os.path.abspath(input_dir), site_info['site'])
-  # NB: paths in CSV should not have a trailing slash
-  paths_to_parse = site_info['paths'].split(',')
-  files_to_parse = find_files(walkdir, paths_to_parse)
-  return files_to_parse
 
 def get_metadata_filename(path):
   filename = os.path.join(path, 'metadata.csv')
@@ -160,7 +164,7 @@ def main():
 
   for site in site_info:
     count = 0
-    # NB: Will clobber existing results if multiple site definitions
+    # NB: Will clobber existing results if multiple site definitions with the same name
     print("Processing {}".format(site['name']))
     files = get_filenames(settings.input_dir, site, corpus_dir)
     for filename in files:
