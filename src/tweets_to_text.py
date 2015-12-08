@@ -7,6 +7,7 @@ Organize and combine the text files for analysis and further processing
 Mike Widner <mikewidner@stanford.edu>
 '''
 import os
+import re
 import csv
 import sys
 import time
@@ -20,6 +21,7 @@ def get_options():
 	parser.add_argument('-s', '--start', dest='start_date', help='Start date for tweets, formatted YYYY-MM-DD', default=None)
 	parser.add_argument('-e', '--end', dest='end_date', help='End date for tweets, formatted YYYY-MM-DD')
 	parser.add_argument('--hashtag', dest='hashtag', help='Hashtag to search for. Omit the leading #')
+	parser.add_argument('-c', '--clean', dest='clean', action='store_true', help='Remove all URLs and hashtags from tweet text before saving.')
 	return parser.parse_args()
 
 def read_tweet_data(filename):
@@ -52,9 +54,16 @@ def filter_by_date(tweets, start, end):
 	return date_filtered_tweets
 
 def filter_by_hashtag(tweets, hashtag):
-	return [tweet for tweet in tweets if '#' + hashtag in tweet['text']]
+	return [tweet for tweet in tweets if '#' + hashtag.lower() in tweet['text'].lower()]
 
-def write_text(tweets, filename):
+def clean_text(text):
+	# Remove URLs
+	text = re.sub('https?:\/{2}[\d\w-]+(\.[\d\w-]+)*(?:(?:\/[^\s/]*))*', '', text, flags=re.MULTILINE)
+	# Remove hash tags
+	text = re.sub('#\w+', '', text, flags=re.MULTILINE)
+	return text
+
+def write_text(tweets, filename, clean = False):
 	'''
 	Write out all words in tweets a single text file
 	'''
@@ -63,7 +72,10 @@ def write_text(tweets, filename):
 		os.makedirs(dirname)
 	words = ''
 	for tweet in tweets:
-		words += tweet['text'] + '\n'
+		text = tweet['text']
+		if clean:
+			text = clean_text(text)
+		words += text + '\n'
 	with open(filename, 'w') as f:
 		f.write(words)
 
@@ -78,7 +90,7 @@ def main():
 		tweets = filter_by_date(tweets, options.start_date, options.end_date)
 	if options.hashtag:
 		tweets = filter_by_hashtag(tweets, options.hashtag)
-	write_text(tweets, options.output)
+	write_text(tweets, options.output, options.clean)
 
 
 if __name__ == '__main__':
