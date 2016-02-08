@@ -1,0 +1,3 @@
+path,item,title,date,link,description
+#www.marinelepen.fr,div#main div.data,h2.title,span.time,h2.title a,p.desc
+www.al1jup.com/toutes-les-breves,div.blocBref,h2 a,div.date,h2 a,div.contenuBref
