@@ -28,6 +28,7 @@ def get_settings():
   parser.add_argument('-o', dest='output_dir', required=True,
                    help='Output directory for results')
   parser.add_argument('-w', '--words', dest='word_count', default=0,required=False, help='Minimum word count to save. Texts below this threshold will be ignored.')
+  parser.add_argument('-v', '--verbose', dest='verbose', action='store_true', required=False, help='Provide verbose output')
   return parser.parse_args()
 
 def get_site_info(csvfile):
@@ -64,14 +65,18 @@ def get_filenames(input_dir, site_info, corpus_dir):
   files_to_parse = find_files(walkdir, paths_to_parse)
   return files_to_parse
 
-def generate_unique_filename(corpus_dir, sitename, filename, title):
-  # create a unique output filename based on doc title and input file
-  filename = os.path.basename(filename)
-  unique = title[:100].lower().translate(remove_punct_map).strip().replace(' ', '_')
-  unique += '_'
-  unique += hashlib.md5(filename.encode('utf-8')).hexdigest()
-  sitename = sitename.lower().translate(remove_punct_map).strip().replace(' ', '_')
-  return os.path.join(corpus_dir, sitename, unique)
+def strip_string(string):
+  return string.lower().translate(remove_punct_map).strip().replace(' ', '_')
+
+def generate_unique_filename(corpus_dir, sitename, info):
+  # create a unique output filename
+  filename = ''
+  for item in ['author','date','title']:
+    if len(filename):
+      filename += '_'
+    filename += strip_string(info[item][:100])
+  sitename = strip_string(sitename)
+  return os.path.join(corpus_dir, sitename, filename)
 
 def clean_string(string):
   # Clean up a string of newlines, etc.
@@ -117,9 +122,13 @@ def extract_text(site_info, input_file, corpus_dir, word_count=0):
       # Assume only the first result is relevant
       # BS4 returns a list of results even if only 1 found
       results[item] = clean_string(contents[0].getText())
+      if item == 'title':
+        # Remove punctuation from titles for easier processing
+        results[item] = strip_string(results[item])
+
 
   results['word_count'] = len(results['content'].split())
-  results['filename'] = generate_unique_filename(corpus_dir, site_info['name'], input_file, results['title'])
+  results['filename'] = generate_unique_filename(corpus_dir, site_info['name'], results)
   if os.path.isfile(results['filename']):
     return
 
@@ -168,6 +177,8 @@ def main():
     print("Processing {}".format(site['name']))
     files = get_filenames(settings.input_dir, site, corpus_dir)
     for filename in files:
+      if settings.verbose:
+        print('Extracting text from {}'.format(filename))
       results = extract_text(site, filename, corpus_dir, settings.word_count)
       if (results is not None):
         count += 1
