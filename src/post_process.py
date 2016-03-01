@@ -14,13 +14,14 @@ import argparse
 def get_settings():
   parser = argparse.ArgumentParser(description='Clean up metadata CSV and text files')
   parser.add_argument('-m','--metadata', dest='metadata', required=True, help='A CSV file of metadata about text files')
-  parser.add_argument('-r','--rules', dest='rules', required=True, help='A CSV file of regexes to apply to columns in the metadata')
+  parser.add_argument('-c','--clean', dest='rules', required=True, help='A CSV file of regexes to apply to columns in the metadata')
+  parser.add_argument('-r', '--rename', dest='rename', action='store_true', help='Move files based on metadata. Pattern: author-date-title.txt')
   return parser.parse_args()
 
 def read_csv(csvfile):
   csvdata = list()
   with open(csvfile) as f:
-    reader = csv.DictReader((row for row in f if not row.startswith('#')), skipinitialspace=True, delimiter=',', quotechar="|")
+    reader = csv.DictReader((row for row in f if not row.startswith('#')), skipinitialspace=True, delimiter=',', quotechar='|')
     csvdata = [row for row in reader]
   return csvdata
 
@@ -33,13 +34,17 @@ def write_csv(filename, data):
     metadata.writerow(list(data[0].keys())) # header
     metadata.writerows(values) # values
 
-def clean_metadata(metadata_file, rules_file):
+def remove_whitespace(metadata):
+  for row in metadata:
+    for col in row:
+      row[col] = row[col].strip()
+
+def clean_metadata(metadata, rules):
   '''
   Replace strings in columns of metadata with regex matches
   '''
   metadata_clean = list()
-  metadata = read_csv(metadata_file)
-  rules = read_csv(rules_file)
+  remove_whitespace(metadata)
   for row in metadata:
     for rule in rules:
       col = rule['column']
@@ -55,15 +60,44 @@ def clean_metadata(metadata_file, rules_file):
           finally:
             row[col] = replace
     metadata_clean.append(row)
-  write_csv(metadata_file, metadata_clean)
+  return metadata_clean
 
-def clean_files(metadata):
-  pass
+def rename_files(metadata):
+  '''
+  Rename each file to match the metadata
+  author-date-title.txt
+  Update metadata sheet to match
+  '''
+  from extract_text import strip_string
+  for row in metadata:
+    values = list()
+    filename = ''
+    for item in ['author', 'date', 'title']:
+      # remove punctuation and spaces for filenames
+      # truncate over-long strings
+      values.append(strip_string(row[item])[:100])
+    filename = '_'.join(values) + '.txt'
+    if len(filename):
+      path = os.path.dirname(row['filename'])
+      filename = os.path.join(path, filename)
+      try:
+        os.rename(row['filename'], filename)
+      except OSError as err:
+        print("Error renaming {}: {}".format(row['filename'], err))
+    else:
+      raise ValueError('No new filename generated!')
+    row['filename'] = filename
+  return metadata
 
 def main():
   settings = get_settings()
-  clean_metadata(settings.metadata, settings.rules)
-  clean_files(settings.metadata)
+  metadata = read_csv(settings.metadata)
+  rules = read_csv(settings.rules)
+  metadata = clean_metadata(metadata, rules)
+  if settings.rename:
+    metadata = rename_files(metadata)
+  write_csv(settings.metadata, metadata)
+
 
 if __name__ == '__main__':
   if sys.version_info[0] != 3:
