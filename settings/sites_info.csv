@@ -1,0 +1,17 @@
+name,site,paths,title,author,date,content,filter
+'Alain Juppe','www.alainjuppe2017.fr','','h1.headline','div#footer-nav div:nth-of-type(4) li.title','aside.metadata time','div.content',''
+'Marine Le Pen: Communiques', 'www.marinelepen.fr', '','h2.section-title','li#menu-item-99 a','span.date-page','div.entry-content','div#content div.category-communiques'
+'Marine Le Pen: Videos', 'www.marinelepen.fr', '','h2.section-title','li#menu-item-99 a','span.date-page','div.entry-content','div#content div.category-videos'
+'François Hollande: Discours','www.elysee.fr','/declarations/article','title','','span.article-date','div.article div.text',''
+'François Hollande: Communiqués','www.elysee.fr','/communiques-de-presse/article','title','','span.article-date','div.article div.text',''
+'François Hollande: Conférences de presse','www.elysee.fr','/conferences-de-presse/article','title','','span.article-date','div.article div.text',''
+'François Hollande: Interviews','www.elysee.fr','/interviews/article','title','','span.article-date','div.article div.text',''
+'Front National: Discours','www.frontnational.com','','h2#pk_page_title','span.bio_description','div.blog_top_meta','div.pk_two_third-blog,div.pk_entry','div#pk_main a[href="http://www.frontnational.com/categorie/discours/"]'
+'Front National: Communiqués', 'www.frontnational.com','','h2#pk_page_title','span.bio_description','div.blog_top_meta','div.pk_two_third-blog,div.pk_entry','div#pk_main a[href="http://www.frontnational.com/categorie/communiques/"]'
+'Front National: Conférences de presse', 'www.frontnational.com','','h2#pk_page_title','span.bio_description','div.blog_top_meta','div.pk_two_third-blog,div.pk_entry','div#pk_main a[href="http://www.frontnational.com/categorie/conferences-de-presse/"]'
+'Alain Juppé: Blog','www.al1jup.com','','title','div.datePublication strong','div.datePublication','div.contenuArticle','meta[content="Blog"]'
+'Alain Juppé: En bref','www.al1jup.com','/en_bref','title','div.datePublication strong','div.datePublication','div.contenuArticle','body.single-en_bref'
+'Les Républicains: Communiqué','www.republicains.fr','','title','div.content p strong','div.publish span.date','div.content','div.page-header-footer div.container span.communiqu'
+'Les Républicains: Article','www.republicains.fr','','title','div.content p strong','div.publish span.date','div.content','div.page-header-footer div.container span.article'
+
+

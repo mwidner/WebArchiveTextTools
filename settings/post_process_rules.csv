@@ -1,0 +1,7 @@
+|column|,|regex|
+|title|,| - AL1JUP|
+|title|,| - Présidence de la République|
+|date|,|Commentaires \d+\s+Publié le (\d{2}\/\d{2}\/\d{4}) par Alain Juppé|
+|date|,|\w+ / (\d+ \w+ \d{4}) /.+/|
+|date|,|Publié le (\d+ \w+ \d{4})|
+|date|,|calendar (\d{2}\/\d{2}\/\d{4})|
