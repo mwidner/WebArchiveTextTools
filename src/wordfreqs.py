@@ -351,7 +351,7 @@ def main():
 
   # TF-IDF
   if (len(corpus_tokenized) <= 1):
-    print('Cannot calculate relative frequencies because we need more than one file in our corpus!')
+    print('Cannot calculate TF-IDF scores because we need more than one file in our corpus!')
   else:
     freqs = {filename: wordfreqs[filename]['rel_freq'] for filename in wordfreqs.keys()}
     tfidf_results = corpus_tfidf(freqs, corpus_tokenized)
@@ -359,10 +359,13 @@ def main():
       wordfreqs[filename]['tfidf'] = data
 
   # Write word-level frequency results
+  stopwords = stopwords(settings.language)
   for filename, results in wordfreqs.items():
     word_data = gather_word_results(results)
     if settings.pos:
       for word in word_data:
+        if word in stopwords:
+          continue
         # Indicate what part(s)-of-speech this word appears as
         word_data[word]['pos'] = list()
         for pos, freq in wordfreqs[filename]['pos_raw_freq'].items():
