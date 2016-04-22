@@ -1,3 +1,4 @@
+ # -*- coding: utf-8 -*-
 '''
 Compute word frequencies from corpus
 
@@ -17,22 +18,22 @@ import treetaggerwrapper as ttw
 
 # These are the languages TreeTagger supports
 lang_codes = {
-  'bg': 'bulgarian',
-  'de': 'german',
-  'en': 'english',
-  'es': 'spanish',
-  'et': 'estonian',
-  'fi': 'finnish',
-  'fr': 'french',
-  'gl': 'galician',
-  'it': 'italian',
-  'la': 'latin',
-  'mn': 'mongolian',
-  'nl': 'dutch',
-  'pl': 'polish',
-  'ru': 'russian',
-  'sk': 'slovak',
-  'sw': 'swahili',
+  'bulgarian' : 'bg',
+  'german'    : 'de',
+  'english'   : 'en',
+  'spanish'   : 'es',
+  'estonian'  : 'et',
+  'finnish'   : 'fi',
+  'french'    : 'fr',
+  'galician'  : 'gl',
+  'italian'   : 'it',
+  'latin'     : 'la',
+  'mongolian' : 'mn',
+  'dutch'     : 'nl',
+  'polish'    : 'pl',
+  'russian'   : 'ru',
+  'slovak'    : 'sk',
+  'swahili'   : 'sw',
 }
 
 settings = None # for global access to cmd-line options
@@ -49,7 +50,7 @@ def get_settings():
   parser.add_argument('-v', '--verbose', dest='verbose', action='store_true', required=False, help='Provide verbose output')
   parser.add_argument('-s', '--stopwords', dest='remove_stopwords', action='store_true', required=False, help='Remove stopwords')
   parser.add_argument('--extra-stopwords', dest='extra_stopwords', required=False, help='Path to a text file of more stopwords, separated by newlines')
-  parser.add_argument('-l', '--lang', dest='language', default='french', required=False, help='Choose the language of the corpus (default: %(default)s', choices=lang_codes.values(), type = str.lower)
+  parser.add_argument('-l', '--lang', dest='language', default='french', required=False, help='Choose the language of the corpus (default: %(default)s', choices=lang_codes.keys(), type = str.lower)
   parser.add_argument('-p', '--punc', dest='remove_punctuation', action='store_true', required=False, help='Remove punctuation')
   return parser.parse_args()
 
@@ -88,7 +89,7 @@ def strip_punctuation(words):
   string.punctuation += "«»`'…–"  # Add some other punctuation marks
   return [word.replace(u"\u2018", "'").replace(u"\u2019", "'").replace(u"\u2019", '"').replace(u"\u201d", '"').strip(string.punctuation) for word in words if word not in string.punctuation]
 
-def stopwords(language):
+def get_stopwords(language):
   '''
   Retrieve a list of stopwords, if one exists in the corpus
   '''
@@ -158,10 +159,12 @@ def tokenize_text(text, language, remove_stopwords = False, remove_punctuation =
     # Use default sentence tokenizer
     sentence_tokens = nltk.tokenize.sent_tokenize(text)
   sentences = list()
+  if remove_stopwords:
+    stopwords = get_stopwords(language)
   for sentence in sentence_tokens:
     words = nltk.tokenize.word_tokenize(sentence)
     if remove_stopwords:
-      words = strip_stopwords(words, stopwords(language))
+      words = strip_stopwords(words, stopwords)
     if remove_punctuation:
       words = strip_punctuation(words)
     sentences.append(words)
@@ -209,13 +212,8 @@ def corpus_tfidf(wordfreqs, corpus):
 
 def tag_pos(text, language):
   ''' Tag parts-of-speech in text; return tagged text '''
-  taglang = ''
-  for code, lang in lang_codes.items():
-    if lang.lower() == language.lower():
-      taglang = code
-
   # ttw will throw an error if the code isn't supported
-  tagger = ttw.TreeTagger(TAGLANG=taglang)
+  tagger = ttw.TreeTagger(TAGLANG=lang_codes[language])
   tags = tagger.tag_text(text)
   return ttw.make_tags(tags)
 
@@ -315,8 +313,8 @@ def main():
   global settings
   settings = get_settings()
   corpus_raw = dict() # as strings of text
-  corpus_tagged = dict() # as POS-tagged dicts()
-  corpus_tokenized = dict() # as list of words in list of sentences
+  corpus_tagged = dict() # as dict of Tag objects
+  corpus_tokenized = dict() # as lists of words in list of sentences
   wordfreqs = collections.defaultdict(dict) # all frequencies
   outfiles = dict() # output filenames
 
@@ -325,12 +323,18 @@ def main():
     # set once, then store
     outfiles[filename] = output_filename(settings.output_dir, filename)
     # Create tokenized corpus
+    if settings.verbose:
+      print('Tokenizing {}'.format(filename))
     corpus_tokenized[filename] = tokenize_text(text, settings.language, settings.remove_stopwords, settings.remove_punctuation)
 
     # Create POS-tagged corpus
     if settings.pos:
+      if settings.verbose:
+        print('Part-of-speeching tagging {}'.format(filename))
       corpus_tagged[filename] = tag_pos(text, settings.language)
       # Calculate POS frequencies and then write results
+      if settings.verbose:
+        print('Part-of-speech frequency calculation for {}'.format(filename))
       wordfreqs[filename]['pos_raw_freq'] = pos_raw_freq(corpus_tagged[filename], settings.pos_ignore, settings.lemmas)
 
   # Raw frequencies and overall stats
@@ -346,20 +350,23 @@ def main():
   # Done with sentence-level work; convert to flat word lists
   corpus_tokenized = corpus_sents_to_words(corpus_tokenized)
   for filename, text in corpus_tokenized.items():
+    if settings.verbose:
+      print('Frequency calculations for {}'.format(filename))
     wordfreqs[filename]['raw_freq'] = raw_freq(text)
     wordfreqs[filename]['rel_freq'] = rel_freq(wordfreqs[filename]['raw_freq'], text)
 
   # TF-IDF
-  if (len(corpus_tokenized) <= 1):
+  if (len(corpus_tokenized) < 2):
     print('Cannot calculate TF-IDF scores because we need more than one file in our corpus!')
   else:
+    if settings.verbose:
+      print('Calculating TF-IDF for corpus')
     freqs = {filename: wordfreqs[filename]['rel_freq'] for filename in wordfreqs.keys()}
-    tfidf_results = corpus_tfidf(freqs, corpus_tokenized)
-    for filename, data in tfidf_results.items():
+    for filename, data in corpus_tfidf(freqs, corpus_tokenized).items():
       wordfreqs[filename]['tfidf'] = data
 
   # Write word-level frequency results
-  stopwords = stopwords(settings.language)
+  stopwords = get_stopwords(settings.language)
   for filename, results in wordfreqs.items():
     word_data = gather_word_results(results)
     if settings.pos:
