@@ -14,20 +14,23 @@ import pandas as pd
 from string import punctuation
 from collections import defaultdict
 
+verbose = False
+
 def get_options():
 	parser = argparse.ArgumentParser(description='Slice corpus into files by site or author')
 	parser.add_argument('-i', dest='input_dir', required=True, help='Input directory where raw corpus exists')
 	parser.add_argument('-m', '--metadata', dest='metadata', required=True, help='A CSV file of metadata describing all the files')
 	parser.add_argument('-o', dest='output_dir', required=True, help='Output directory for results')
 	parser.add_argument('-c', '--column', dest='columns', required=True, action='append', help='The column(s) by which to slice up the corpus. Multiple columns will create sub-categories, e.g., -c col1 -col2 will slice corpus into all col2 within col1')
+	parser.add_argument('-v', '--verbose', dest='verbose', action='store_true', help='Verbose output')
 	return parser.parse_args()
 
 def get_year(value):
 	'''
 	Return a 4 digit year based on the given value
 	'''
-	match = re.search('(\d{4})', str(value))
-	return(match.group(0) if match is not None and len(match.group(0)) else '')
+	match = re.search('(\d\d\d\d)$', str(value))
+	return(match.group(1) if match is not None else None)
 
 def load_words(filename):
 	'''
@@ -48,7 +51,7 @@ def load_words(filename):
 
 def clean_filename(filename):
 	remove_punct_map = dict.fromkeys(map(ord, punctuation.replace('_', '') + '’'))
-	return str(filename)[:100].translate(remove_punct_map).strip().replace(' ', '_')
+	return str(filename).translate(remove_punct_map).strip().replace(' ', '_')[:100]
 
 def get_uniques(df, key):
 	'''
@@ -65,9 +68,14 @@ def write_text(df, output_path, filename):
 	if (len(df['words']) == 0 or len(filename) == 0):
 		return 	# don't write empty files
 
-	print("Generating {}/{}.txt".format(output_path, filename))
+	if verbose:
+		print("Generating {}/{}.txt".format(output_path, filename))
 	if not os.path.isdir(output_path):
-		os.makedirs(output_path)
+		try:
+			os.makedirs(output_path)
+		except OSError as err:
+			print("Cannot write {}: {}".format(output_path, err))
+			return
 	fh = open(os.path.join(output_path, filename + '.txt'), 'w')
 	for row in df['words']:
 		fh.write(row)
@@ -89,7 +97,7 @@ def join_texts(df, columns, path, join_with = None):
 				df_item = pd.merge(df_left, df_item)
 
 			if index < len(columns) - 1:
-				join_texts(df, columns[index + 1:], os.path.join(path, item), {'column': column, 'item': item})
+				join_texts(df, columns[index + 1:], os.path.join(path, str(item)), {'column': str(column), 'item': str(item)})
 
 			# if len(df_item.index):
 			write_text(df_item, path, item)
@@ -102,6 +110,8 @@ def main():
 	Organize by different slicings
 	'''
 	options = get_options()
+	if options.verbose:
+		verbose = True
 	df = pd.read_csv(options.metadata, quotechar='|')
 
 	df['year'] = df['date'].apply(get_year)
