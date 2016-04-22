@@ -6,6 +6,7 @@ Mike Widner <mikewidner@stanford.edu>
 '''
 
 import os
+import re
 import csv
 import sys
 import math
@@ -54,6 +55,13 @@ def get_settings():
   parser.add_argument('-p', '--punc', dest='remove_punctuation', action='store_true', required=False, help='Remove punctuation')
   return parser.parse_args()
 
+def fix_sentence_end_without_space(text):
+  '''
+  Some texts in corpus have no spaces after ending punctuation
+  Sentence tokenizer can't handle those, so add some spaces
+  '''
+  return re.sub(r"(\w+)([.,…»;\"':]+)(\w+)", r"\1\2 \3", text)
+
 def get_text_from_file(filename):
   '''
   Read a file and return entire text as a string
@@ -62,12 +70,12 @@ def get_text_from_file(filename):
   '''
   text = None
   try:
-    f = open(filename)
+    f = open(filename, 'r', encoding='utf-8')
     text = f.read()
     f.close()
   except UnicodeDecodeError as err:
     print("Could not read {}: {}".format(filename, err))
-  return text
+  return fix_sentence_end_without_space(text)
 
 def read_corpus(dir):
   '''
@@ -82,12 +90,18 @@ def read_corpus(dir):
       corpus[path] = text
   return corpus
 
+def replace_smart_quotes(text):
+  '''
+  Smart quotes aren't in stopwords list, so replace them
+  '''
+  return text.replace(u"\u2018", "'").replace(u"\u2019", "'").replace(u"\u2019", '"').replace(u"\u201d", '"')
+
 def strip_punctuation(words):
   '''
   Remove all punctuation from a list of words
   '''
   string.punctuation += "«»`'…–"  # Add some other punctuation marks
-  return [word.replace(u"\u2018", "'").replace(u"\u2019", "'").replace(u"\u2019", '"').replace(u"\u201d", '"').strip(string.punctuation) for word in words if word not in string.punctuation]
+  return [replace_smart_quotes(word).strip(string.punctuation) for word in words if word not in string.punctuation]
 
 def get_stopwords(language):
   '''
@@ -147,7 +161,7 @@ def basic_stats(sentences):
   stats['median_word_length'] = statistics.median(word_lengths)
   return stats
 
-def tokenize_text(text, language, remove_stopwords = False, remove_punctuation = False):
+def tokenize_text(text, language, stopwords, remove_punctuation = False):
   '''
   Tokenize the given text string
   Return as a list of sentences that are lists of words
@@ -159,11 +173,12 @@ def tokenize_text(text, language, remove_stopwords = False, remove_punctuation =
     # Use default sentence tokenizer
     sentence_tokens = nltk.tokenize.sent_tokenize(text)
   sentences = list()
-  if remove_stopwords:
-    stopwords = get_stopwords(language)
   for sentence in sentence_tokens:
-    words = nltk.tokenize.word_tokenize(sentence)
-    if remove_stopwords:
+    # Note: WordPunctTokenizer works better for French
+    # General-purpose word tokenizer is nltk.tokenize.word_tokenize()
+    word_tokenizer = nltk.tokenize.WordPunctTokenizer()
+    words = word_tokenizer.tokenize(sentence)
+    if len(stopwords):
       words = strip_stopwords(words, stopwords)
     if remove_punctuation:
       words = strip_punctuation(words)
@@ -190,12 +205,22 @@ def rel_freq(freqdist, words):
   return {word: freq / doc_length for word, freq in freqdist.items()}
 
 def n_containing(word, corpus):
+  '''
+  Counts number of documents in corpus that contain given word
+  '''
   return sum(1 for filename in corpus if word in corpus[filename])
 
 def idf(word, corpus):
+  '''
+  Give inverse document frequency score for given word
+  '''
   return math.log(len(corpus) / (n_containing(word, corpus)))
 
 def tfidf(word, freq, corpus):
+  '''
+  Return TF-IDF score for given word
+  Expects the relative frequency
+  '''
   return freq * idf(word, corpus)
 
 def corpus_tfidf(wordfreqs, corpus):
@@ -254,19 +279,18 @@ def pos_percents(text, pos_counters):
 
 def output_filename(dest, filename):
   '''
-  Ensure that the correct directories exist
   Return a new filename to write to
   '''
   table = str.maketrans('/.', '__')
-  if not os.path.isdir(dest):
-    os.makedirs(dest)
-  filename = filename.translate(table).lstrip('_')
+  filename = os.path.basename(filename).translate(table).lstrip('_')
   return os.path.join(dest, filename) + '.csv'
 
 def write_stats(data, outfile):
   '''
   Write general document-level stats
   '''
+  if not os.path.isdir(os.path.dirname(outfile)):
+    os.makedirs(outfile)
   with open(outfile, 'w') as f:
     csvfile = csv.writer(f, quotechar='|')
     sorted_keys = sorted(list(data.keys()), reverse=True)
@@ -284,7 +308,7 @@ def gather_word_results(data):
       word_data[word.lower()][stat_type] = data[stat_type][word]
   return word_data
 
-def write_results(word_data, columns, outfile):
+def write_results(word_data, columns, stopwords, outfile):
   '''
   Write out all results
   Expects the data to be keyed by items in the columns list
@@ -297,6 +321,9 @@ def write_results(word_data, columns, outfile):
     csvfile = csv.writer(f, quotechar='|')
     csvfile.writerow(['word'] + columns)
     for word in word_data:
+      if word in stopwords:
+        # stopwords might be in POS results
+        continue
       row = list()
       row.append(word)
       for column in columns:
@@ -310,6 +337,10 @@ def write_results(word_data, columns, outfile):
       csvfile.writerow(row)
 
 def main():
+  '''
+  Run the entire process based on command-line parameters
+  Calculates all frequencies, then writes results
+  '''
   global settings
   settings = get_settings()
   corpus_raw = dict() # as strings of text
@@ -317,15 +348,20 @@ def main():
   corpus_tokenized = dict() # as lists of words in list of sentences
   wordfreqs = collections.defaultdict(dict) # all frequencies
   outfiles = dict() # output filenames
+  stopwords = list()
 
   corpus_raw = read_corpus(settings.input_dir)
+
+  if settings.remove_stopwords:
+    stopwords = get_stopwords(settings.language)
+
   for filename, text in corpus_raw.items():
     # set once, then store
     outfiles[filename] = output_filename(settings.output_dir, filename)
     # Create tokenized corpus
     if settings.verbose:
       print('Tokenizing {}'.format(filename))
-    corpus_tokenized[filename] = tokenize_text(text, settings.language, settings.remove_stopwords, settings.remove_punctuation)
+    corpus_tokenized[filename] = tokenize_text(text, settings.language, stopwords, settings.remove_punctuation)
 
     # Create POS-tagged corpus
     if settings.pos:
@@ -366,13 +402,10 @@ def main():
       wordfreqs[filename]['tfidf'] = data
 
   # Write word-level frequency results
-  stopwords = get_stopwords(settings.language)
   for filename, results in wordfreqs.items():
     word_data = gather_word_results(results)
     if settings.pos:
       for word in word_data:
-        if word in stopwords:
-          continue
         # Indicate what part(s)-of-speech this word appears as
         word_data[word]['pos'] = list()
         for pos, freq in wordfreqs[filename]['pos_raw_freq'].items():
@@ -380,9 +413,9 @@ def main():
             word_data[word]['pos'].append(pos)
         word_data[word]['pos'] = ','.join(word_data[word]['pos'])
 
-      write_results(word_data, ['pos', 'raw_freq', 'rel_freq', 'tfidf'], outfiles[filename])
+      write_results(word_data, ['pos', 'raw_freq', 'rel_freq', 'tfidf'], stopwords, outfiles[filename])
     else:
-      write_results(word_data, ['raw_freq', 'rel_freq', 'tfidf'], outfiles[filename])
+      write_results(word_data, ['raw_freq', 'rel_freq', 'tfidf'], stopwords, outfiles[filename])
 
 if __name__ == '__main__':
   if sys.version_info < (3,0):
