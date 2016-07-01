@@ -1,0 +1,4 @@
+name,site,paths,title,author,date,content,filter
+'Jean-Luc Melenchon', 'melenchon.fr', '', 'h1.entry-title', '', 'time', 'div.entry-content', ''
+'Marine le Pen', 'carnetsdesperances.fr', '', 'h1.post-title', '', 'time.post-date', 'div.post-content', ''
+'Alain Juppe','www.alainjuppe2017.fr','','h1.headline','div#footer-nav div:nth-of-type(4) li.title','aside.metadata time','div.content',''

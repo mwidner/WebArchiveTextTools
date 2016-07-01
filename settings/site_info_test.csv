@@ -1,0 +1,4 @@
+name,site,paths,title,author,date,content,filter
+'Jean-Luc Melenchon: Discours', 'melenchon.fr', '', 'h1.post-tile', 'meta[property="og:site_name"]', 'time', 'div.entry-content', 'div.category-discours-retranscrits'
+'Jean-Luc Melenchon: Lettres', 'melenchon.fr', '', 'h1.post-tile', 'meta[property="og:site_name"]', 'time', 'div.entry-content', 'div.category-lettres'
+'Jean-Luc Melenchon: Blog', 'melenchon.fr', '', 'h1.post-tile', 'meta[property="og:site_name"]', 'time', 'div.entry-content', 'div.blog-post'

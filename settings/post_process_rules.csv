@@ -5,3 +5,6 @@
 |date|,|\w+ / (\d+ \w+ \d{4}) /.+/|
 |date|,|Publié le (\d+ \w+ \d{4})|
 |date|,|calendar (\d{2}\/\d{2}\/\d{4})|
+|date|,|(\d+ \w+ \d{4}) - \w+|
+|date|,|(\d+\w+ \d+)|
+|date|,|\w+ (\d+ \w+ \d{4})|

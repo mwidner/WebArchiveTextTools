@@ -1,4 +1,9 @@
 name,site,paths,title,author,date,content,filter
+'Marine le Pen: Carnets d'esperance, 'carnetsdesperances.fr', '', 'h1.post-title', '', 'time.post-date', 'div.post-content', ''
+'Jean-Luc Melenchon: Discours', 'melenchon.fr', '', 'h1.post-tile', 'meta[property="og:site_name"]', 'time', 'div.entry-content', 'div.category-discours-retranscrits'
+'Jean-Luc Melenchon: Lettres', 'melenchon.fr', '', 'h1.post-tile', 'meta[property="og:site_name"]', 'time', 'div.entry-content', 'div.category-lettres'
+'Jean-Luc Melenchon: Blog', 'melenchon.fr', '', 'h1.post-tile', 'meta[property="og:site_name"]', 'time', 'div.entry-content', 'div.blog-post'
+'Jean-Luc Melenchon: Old', 'www.jean-luc-melenchon.fr', '', 'div.title2 h2 a', '', 'div.date', 'div.entry', ''
 'Alain Juppe','www.alainjuppe2017.fr','','h1.headline','div#footer-nav div:nth-of-type(4) li.title','aside.metadata time','div.content',''
 'Marine Le Pen: Communiques', 'www.marinelepen.fr', '','h2.section-title','li#menu-item-99 a','span.date-page','div.entry-content','div#content div.category-communiques'
 'Marine Le Pen: Videos', 'www.marinelepen.fr', '','h2.section-title','li#menu-item-99 a','span.date-page','div.entry-content','div#content div.category-videos'
@@ -13,5 +18,4 @@ name,site,paths,title,author,date,content,filter
 'Alain Juppé: En bref','www.al1jup.com','/en_bref','title','div.datePublication strong','div.datePublication','div.contenuArticle','body.single-en_bref'
 'Les Républicains: Communiqué','www.republicains.fr','','title','div.content p strong','div.publish span.date','div.content','div.page-header-footer div.container span.communiqu'
 'Les Républicains: Article','www.republicains.fr','','title','div.content p strong','div.publish span.date','div.content','div.page-header-footer div.container span.article'
-
-
+'Manuel Valls', 'www.gouvernement.fr', '/partage','h1.titre-texte','','div.entete-surtitre','div.field-name-field-texte',''
