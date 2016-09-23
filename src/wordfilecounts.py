@@ -19,6 +19,7 @@ def get_settings():
     parser.add_argument('-l', '--language', dest='language', required=True,
                         help='Language in which the texts were written',
                         choices=wf.lang_codes.keys(), type = str.lower)
+    parser.add_argument('-c', dest='columns', required=True, action='append')
     return parser.parse_args()
 
 
@@ -47,7 +48,6 @@ def write_rows(df, columns, csvfile, values=None):
 
 def main():
     settings = get_settings()
-    columns = ['author', 'year', 'genre']
     df = pd.read_csv(settings.inputfile, quotechar='|')
     df['year'] = df['date'].apply(jc.get_year)
     df['file_exists'] = df['filename'].apply(os.path.isfile)
@@ -57,9 +57,9 @@ def main():
     if not os.path.exists(os.path.dirname(settings.outputfile)):
         os.makedirs(os.path.dirname(settings.outputfile))
     with open(settings.outputfile, 'w') as f:
-        csvfile = csv.DictWriter(f, fieldnames=columns + ['words', 'files'])
+        csvfile = csv.DictWriter(f, fieldnames=settings.columns + ['words', 'files'])
         csvfile.writeheader()
-        write_rows(df, columns, csvfile)
+        write_rows(df, settings.columns, csvfile)
 
 
 if __name__ == '__main__':
