@@ -1,8 +1,8 @@
-#
-# Extract HTML pages from WARC
-#
-# Mike Widner <mikewidner@stanford.edu>
-#
+'''
+Extract HTML pages from WARC
+
+Mike Widner <mikewidner@stanford.edu>
+'''
 
 import os
 import csv
@@ -11,10 +11,11 @@ from urllib.parse import urlparse
 import warcat.model
 
 
-parser = argparse.ArgumentParser(description='Write individual HTML files from WARC')
+parser = argparse.ArgumentParser(description='Extract content from HTML of archive websites via extracted WARC')
 parser.add_argument('-i', dest='input_file', required=True, help='Input file')
 parser.add_argument('-o', dest='output_dir', required=True,
                    help='Output directory')
+parser.add_argument('-j', '--join', dest='join_files', required=False, help='Join each site content into single file')
 args = parser.parse_args()
 
 warc = warcat.model.WARC()

@@ -122,6 +122,13 @@ def extract_text(site_info, input_file, corpus_dir, word_count=0):
       # Assume only the first result is relevant
       # BS4 returns a list of results even if only 1 found
       results[item] = clean_string(contents[0].getText())
+      if len(results[item]) == 0:
+        # Try a different method
+        try:
+          results[item] = contents[0]['content']
+        except KeyError:
+          # Oh well. We tried...
+          pass
       if item == 'title':
         # Remove punctuation from titles for easier processing
         results[item] = strip_string(results[item])

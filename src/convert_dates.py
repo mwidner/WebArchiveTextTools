@@ -8,12 +8,14 @@ import csv
 import sys
 import argparse
 import datetime
+from dateutil import parser
 
 def get_options():
   parser = argparse.ArgumentParser(description='Convert date strings into numbers')
   parser.add_argument('-i', dest='input', required=True, help='Input file of metadata as CSV')
   parser.add_argument('-o', dest='output', required=True, help='Output file for results')
   parser.add_argument('-v', '--verbose', dest='verbose', action='store_true', help='Verbose output')
+  parser.add_argument('-f', '--format', dest='format', required=True, help='Format for date string')
   return parser.parse_args()
 
 def read_metadata(filename):
@@ -23,25 +25,34 @@ def read_metadata(filename):
     metadata = [row for row in reader]
   return metadata
 
-def convert_dates(metadata):
+def convert_dates(metadata, date_format):
   ''' Could conceivably make these replacements configurable '''
   months = {
     'janvier': 1,
+    'jan': 1,
     'février': 2,
+    'fév': 2,
     'mars': 3,
+    'mar': 3,
     'avril': 4,
+    'avr': 4,
     'mai': 5,
     'juin': 6,
     'juillet': 7,
+    'juil': 7,
     'août': 8,
     'septembre': 9,
+    'sept': 9,
     'octobre': 10,
+    'oct': 10,
     'novembre': 11,
-    'décembre': 12
+    'nov': 11,
+    'décembre': 12,
+    'déc': 12,
   }
   date_patterns = dict()
   for month in months.keys():
-    date_patterns[month] = re.compile('(\d+)\s+(' + month + ')\s(\d+)', re.IGNORECASE)
+    date_patterns[month] = re.compile('(\d+)\s*(' + month + ')\s*(\d+)', re.IGNORECASE)
   for row in metadata:
     for month in date_patterns.values():
       match = month.search(row['date'])
@@ -49,8 +60,16 @@ def convert_dates(metadata):
         day = int(match.group(1))
         month = int(months[match.group(2).lower()])
         year = int(match.group(3))
+        if len(str(year)) < 4 and year < 17:
+          year += 2000
         date = datetime.date(year, month, day)
-        row['date'] = date.strftime('%d/%m/%Y')
+        row['date'] = date.strftime(date_format)
+    # Now ensure all numeric dates are in desired format
+    try:
+      date = parser.parse(row['date'])
+      row['date'] = date.strftime(date_format)
+    except ValueError as err:
+      print('Cannot parse {}: {}'.format(row['date'], err))
   return metadata
 
 def write_metadata(metadata, filename):
@@ -65,7 +84,7 @@ def write_metadata(metadata, filename):
 def main():
   options = get_options()
   metadata = read_metadata(options.input)
-  metadata = convert_dates(metadata)
+  metadata = convert_dates(metadata, options.format)
   write_metadata(metadata, options.output)
 
 if __name__ == '__main__':

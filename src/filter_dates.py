@@ -12,7 +12,7 @@ settings = None
 
 def get_settings():
   ''' Return command-line settings '''
-  parser = argparse.ArgumentParser(description='Filter text corpus by date range')
+  parser = argparse.ArgumentParser(description='Filter text corpus by date range. Only updates the metadata file.')
   parser.add_argument('-i', dest='input', required=True, help='Input CSV of metadata describing files')
   parser.add_argument('-o', dest='output', required=True,
                    help='Output CSV for filtered results')
@@ -27,11 +27,15 @@ def filter_dates(metadata, start, end):
   if end is not None:
     end = dateutil.parser.parse(end)
   for row in metadata:
-    date = dateutil.parser.parse(row['date'])
-    if date is None:
-      continue
-    if (start is None or start <= date) and (end is None or date <= end):
-      results.append(row)
+    try:
+      date = dateutil.parser.parse(row['date'])
+    except ValueError as err:
+      print('No date found in row: {}'.format(row))
+    else:
+    # if date is None:
+    #   continue
+      if (start is None or start <= date) and (end is None or date <= end):
+        results.append(row)
   return results
 
 def main():

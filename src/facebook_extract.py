@@ -7,7 +7,6 @@ Mike Widner <mikewidner@stanford.edu>
 import os
 import re
 import csv
-import json
 import argparse
 import facebook
 import requests
@@ -42,26 +41,30 @@ def get_facebook_data(graph, feed_url):
   data = list()
   first_page = True
   while(True):
-    try:
-      if first_page:
-        posts = graph.get_object(feed_url)
-        first_page = False
-      else:
+    if first_page:
+      posts = graph.get_object(feed_url)
+      first_page = False
+    else:
+      try:
         posts = requests.get(posts['paging']['next']).json()
-      for post in posts['data']:
-        if post['status_type'] == 'shared_story':
-          data.append(graph.get_object(post['id']))
-          if post['link']:
-            try:
-              r = requests.get(post['link'])
-              r.encoding = 'utf-8'
-              write_followed_link(post['link'], r.text)
-            except:
-              # Couldn't retrieve the link, don't sweat it
-              pass
-    except KeyError:
+      except KeyError:
       # No more pages
-      break
+       break
+      for post in posts['data']:
+        try:
+          if ('status_type' in post) and (post['status_type'] in ['shared_story', 'mobile_status_update', 'created_note']):
+            data.append(graph.get_object(post['id']))
+            if 'link' in post:
+              try:
+                r = requests.get(post['link'])
+                r.encoding = 'utf-8'
+                write_followed_link(post['link'], r.text)
+              except:
+                # Couldn't retrieve the link, don't sweat it
+                pass
+        except KeyError:
+          pass  # just keep swimming
+
   return data
 
 def generate_header(data):
