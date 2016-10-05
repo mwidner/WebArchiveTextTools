@@ -153,7 +153,7 @@ def main():
 
     wordlists = PlaintextCorpusReader(options.input, '.*\.txt$')
 
-    stopwords = False
+    stopwords = list()
     if options.stopwords:
         stopwords = get_stopwords(options.stopwords)
 
