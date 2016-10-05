@@ -9,6 +9,8 @@
 WORKDIR="/Users/widner/Projects/DLCL/Alduy/French_Poli/book_corpus"
 METADATA="$WORKDIR/metadata/all.csv"
 SRC="/Users/widner/Projects/DLCL/Alduy/French_Poli/src"
+authordir="$WORKDIR/subcorpora/quarters/by_author"
+mkdir -p $authordir
 
 for year in "2014" "2015" "2016"; do
   for start_month in "01" "04" "07" "10"; do
@@ -21,13 +23,20 @@ for year in "2014" "2015" "2016"; do
     fi
 
     outfile="$WORKDIR/metadata/all_${year}-${start_month}-${end_month}.csv"
-    outdir="$WORKDIR/${year}_${start_month}_${end_month}"
+    outdir="$WORKDIR/subcorpora/quarters/${year}_${start_month}_${end_month}"
+
     python $SRC/filter_dates.py -i $METADATA -o $outfile -s ${year}-${start_month}-01 -e ${year}-${end_month}-${last_day}
-    python $SRC/join_corpus.py -m $outfile -i $WORKDIR/texts -o $outdir -c author
-    cat $outdir/author/*.txt >> $outdir/all.${year}.${start_month}-${end_month}.txt
-    for author in `ls $outdir/author/*.txt`; do
-      author_name=`basename $author .txt`
-      mv $author $outdir/author/$author_name.${year}.${start_month}-${end_month}.txt
-    done
+    if [ -f $outfile ]; then
+      python $SRC/subcorpus.py -m $outfile -i $WORKDIR/texts -o $outdir -c author
+      cat $outdir/author/*.txt >> $outdir/all_${year}_${start_month}-${end_month}.txt
+      for author_file in `ls $outdir/author/*.txt`; do
+        author_name=`basename $author_file .txt`
+        if [ ! -d "${authordir}/${author_name}" ]; then
+          mkdir "${authordir}/${author_name}"
+        fi
+        new_filename="${author_name}_${year}_${start_month}-${end_month}.txt"
+        cp $author_file "${authordir}/${author_name}/${new_filename}"
+      done
+    fi
   done
 done
