@@ -15,6 +15,9 @@ def get_settings():
     parser.add_argument('-o', dest='outputdir', required=True, help='Output directory')
     parser.add_argument('-s', dest='show', action='store_true', help='Show images before saving')
     parser.add_argument('-n', dest='number', type=int, help='Top N items', default=50)
+    parser.add_argument('-t', dest='title', help='Chart title')
+    parser.add_argument('-x', dest='xlabel', help='Label for x axis')
+    parser.add_argument('-y', dest='ylabel', help='Label for y axis')
     return parser.parse_args()
 
 
@@ -33,7 +36,7 @@ def main():
         data = df.head(settings.number)
     else:
         data = df
-    gc.barplot(data, 'word', 'raw_freq', filename, 'Word', 'Raw Frequency', settings.show)
+    gc.barplot(df=data, x='word', y='raw_freq', filename=filename, xlabel=settings.xlabel, ylabel=settings.ylabel, title=settings.title, show=settings.show)
 
 
 if __name__ == '__main__':
