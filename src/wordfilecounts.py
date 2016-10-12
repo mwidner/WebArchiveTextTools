@@ -8,7 +8,7 @@ import csv
 import sys
 import pandas as pd
 import argparse
-import join_corpus as jc
+import subcorpus as sc
 import wordfreqs as wf
 
 
@@ -25,13 +25,13 @@ def get_settings():
 
 def count_words(filename, language):
     text = wf.get_text_from_file(filename)
-    sentences = wf.tokenize_text(text, language)
+    sentences = wf.tokenize_text(text, language, remove_punctuation=True)
     return len(wf.wordlist(sentences))
 
 
 def write_rows(df, columns, csvfile, values=None):
     for i, col in enumerate(columns):
-        for value in jc.get_uniques(df, col):
+        for value in sc.get_uniques(df, col):
             sub_df = df[df[col] == value]
             row = {col: value, 'words': sub_df['words'].sum(), 'files': len(sub_df.index)}
             if values is not None:
@@ -49,7 +49,7 @@ def write_rows(df, columns, csvfile, values=None):
 def main():
     settings = get_settings()
     df = pd.read_csv(settings.inputfile, quotechar='|')
-    df['year'] = df['date'].apply(jc.get_year)
+    df['year'] = df['date'].apply(sc.get_year)
     df['file_exists'] = df['filename'].apply(os.path.isfile)
     df = df.drop(df[df['file_exists'] == False].index)
     df['words'] = df['filename'].apply(count_words, args=(settings.language,))
