@@ -10,18 +10,21 @@ import matplotlib as mpl
 import matplotlib.pyplot as plt
 
 
-def timeseries(df, time, y, filename):
+def timeseries(df, time, y, filename=None):
     p = sns.tsplot(data=df, time=time, value=y)
     plt.show()
 
 
-def barplot(df, x, y, filename, xlabel = None, ylabel = None, show = False):
+def barplot(df, x, y, filename, xlabel = None, ylabel = None, title=None, show = False):
     p = sns.barplot(x=x, y=y, data=df, palette='Greys_r')
     if xlabel is not None:
-        p.set(xlabel=xlabel)
+        plt.xlabel(xlabel, fontname='Times New Roman')
     if ylabel is not None:
-        p.set(ylabel=ylabel)
-    plt.xticks(rotation=90)
+        plt.ylabel(ylabel, fontname='Times New Roman')
+    if title is not None:
+        plt.title(title, fontsize=20, fontname='Times New Roman')
+    plt.xticks(rotation=65, rotation_mode="anchor", ha="right", va="center")
+    plt.tick_params(axis='both', which='major', labelsize=12)
     plt.tight_layout()
     plt.savefig(filename, pad_inches=.1, dpi=600)
     if show:
