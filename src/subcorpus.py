@@ -37,7 +37,7 @@ def get_year(value):
     Return a 4 digit year based on the given value
     '''
     match = re.search('(\d\d\d\d)', str(value))
-    return(match.group(1) if match is not None else None)
+    return(int(match.group(1)) if match is not None else None)
 
 
 def load_words(filename):
