@@ -91,13 +91,17 @@ def get_text_from_file(filename):
     Note: we don't use PlaintextCorpusReader because it tokenizes,
     but we're tokenizing differently for our French corpus
     '''
-    text = None
+    text = ''
     try:
         f = open(filename, 'r', encoding='utf-8')
         text = f.read()
         f.close()
     except UnicodeDecodeError as err:
         print("Could not read {}: {}".format(filename, err))
+    except FileNotFoundError as err:
+        print(err)
+    except IsADirectoryError as err:
+        print(err)
     return fix_sentence_end_without_space(text)
 
 
@@ -382,17 +386,17 @@ def write_results(word_data, columns, stopwords, outfile):
             if word in stopwords:
                 # stopwords might be in POS results
                 continue
-        row = list()
-        row.append(word)
-        for column in columns:
-            if column in word_data[word]:
-                value = word_data[word][column]
-                if type(value) is float:
-                    value = format(value, '.8f')
-                row.append(value)
-            else:
-                row.append('')
-        csvfile.writerow(row)
+            row = list()
+            row.append(word)
+            for column in columns:
+                if column in word_data[word]:
+                    value = word_data[word][column]
+                    if type(value) is float:
+                        value = format(value, '.8f')
+                    row.append(value)
+                else:
+                    row.append('')
+            csvfile.writerow(row)
 
 
 def main():
