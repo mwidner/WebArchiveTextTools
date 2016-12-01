@@ -153,12 +153,16 @@ def get_stopwords(language):
     return stopwords
 
 
-def strip_stopwords(words, stopwords):
-    '''
-    Remove all stop words from a word list
-    Return the stripped text
-    '''
-    return [word for word in words if word.lower() not in stopwords]
+# def strip_stopwords(words, stopwords):
+#     '''
+#     Remove all stop words from a word list
+#     Return the stripped text
+#     '''
+#     return [word for word in words if word.lower() not in stopwords]
+
+
+def remove_blanks(words):
+    return [word for word in words if len(word) > 0]
 
 
 def wordlist(sentences):
@@ -198,7 +202,7 @@ def basic_stats(sentences):
     return stats
 
 
-def tokenize_text(text, language, stopwords=list(), remove_punctuation=False):
+def tokenize_text(text, language, remove_punctuation=False):
     '''
     Tokenize the given text string
     Return as a list of sentences that are lists of words
@@ -215,8 +219,7 @@ def tokenize_text(text, language, stopwords=list(), remove_punctuation=False):
     word_tokenizer = nltk.tokenize.WordPunctTokenizer()
     for sentence in sentence_tokens:
         words = word_tokenizer.tokenize(sentence)
-        if len(stopwords):
-            words = strip_stopwords(words, stopwords)
+        words = remove_blanks(words)
         if remove_punctuation:
             words = strip_punctuation(words)
         sentences.append(words)
@@ -306,6 +309,8 @@ def pos_raw_freq(tagged_tokens, pos_ignore_list, count_lemmas=False):
     for token in tagged_tokens:
         if not isinstance(token, ttw.Tag):
             continue
+        if len(token.word) == 0:
+            continue
         pos = token.pos
         if ':' in token.pos:
             pos = token.pos.split(':')[0]
@@ -383,8 +388,7 @@ def write_results(word_data, columns, stopwords, outfile):
         csvfile = csv.writer(f, quotechar='|')
         csvfile.writerow(['word'] + columns)
         for word in word_data:
-            if word in stopwords:
-                # stopwords might be in POS results
+            if word.lower() in stopwords:
                 continue
             row = list()
             row.append(word)
@@ -425,18 +429,17 @@ def main():
         if settings.verbose:
             print('Tokenizing {}'.format(filename))
         corpus_tokenized[filename] = tokenize_text(text, settings.language,
-                                                   stopwords,
                                                    settings.remove_punctuation)
 
-    # Create POS-tagged corpus
-    if settings.pos:
-        if settings.verbose:
-            print('Part-of-speeching tagging {}'.format(filename))
-        corpus_tagged[filename] = tag_pos(text, settings.language)
-        # Calculate POS frequencies and then write results
-        if settings.verbose:
-            print('Part-of-speech frequency calculation for {}'.format(filename))
-        wordfreqs[filename]['pos_raw_freq'] = pos_raw_freq(corpus_tagged[filename], settings.pos_ignore, settings.lemmas)
+        # Create POS-tagged corpus
+        if settings.pos:
+            if settings.verbose:
+                print('Part-of-speeching tagging {}'.format(filename))
+            corpus_tagged[filename] = tag_pos(text, settings.language)
+            # Calculate POS frequencies and then write results
+            if settings.verbose:
+                print('Part-of-speech frequency calculation for {}'.format(filename))
+            wordfreqs[filename]['pos_raw_freq'] = pos_raw_freq(corpus_tagged[filename], settings.pos_ignore, settings.lemmas)
 
     # Raw frequencies and overall stats
     # Requires sentence-tokenized corpus for sentence-level statistics
@@ -479,7 +482,7 @@ def main():
                     if word in freq.keys():
                         word_data[word]['pos'].append(pos)
                 word_data[word]['pos'] = ','.join(word_data[word]['pos'])
-                write_results(word_data, ['pos', 'raw_freq', 'rel_freq', 'tfidf'],
+            write_results(word_data, ['pos', 'raw_freq', 'rel_freq', 'tfidf'],
                               stopwords, outfiles[filename])
         else:
             write_results(word_data, ['raw_freq', 'rel_freq', 'tfidf'],
