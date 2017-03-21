@@ -23,8 +23,9 @@ def barplot(df, x, y, filename, xlabel = None, ylabel = None, title=None, show =
         plt.ylabel(ylabel, fontname='Times New Roman')
     if title is not None:
         plt.title(title, fontsize=20, fontname='Times New Roman')
-    plt.xticks(rotation=65, rotation_mode="anchor", ha="right", va="center")
-    plt.tick_params(axis='both', which='major', labelsize=12)
+    plt.xticks(rotation=-65, rotation_mode="anchor", ha="left", va="center")
+    plt.tick_params(axis='both', which='major', labelsize=10)
+    # plt.tick_params(axis='x', which='major', pad=10)
     plt.tight_layout()
     plt.savefig(filename, pad_inches=.1, dpi=600)
     if show:

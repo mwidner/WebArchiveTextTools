@@ -64,21 +64,26 @@ def main():
     if settings.author:
         df = df[df.author == settings.author]
 
+    # Convert date strings to datetime objects
     df['date'] = df['date'].apply(lambda x: pd.to_datetime(str(x), format='%Y-%m-%d'))
+    # Make dates the index
     df.set_index(['date'], inplace=True)
     df.sort_index(inplace=True)
     df['words'] = df['filename'].apply(get_words, args=(settings.language,))
     df['fd'] = df['words'].apply(nltk.FreqDist)
 
+    # get raw frequency for every word
     for word in settings.words:
         df[word] = df['fd'].apply(get_frequency, args=(word, settings.exact))
+
+    # Convert to relative frequencies by row
     df = df.apply(relative_frequency, axis=1, args=(settings.words,))
 
+    # Resample for monthly values
     tsres = df[settings.words].resample('M').median().interpolate('time')
-    lines = ['-.s', '--o', '-v', ':^']
-    tsres.plot(style=lines, color='k')
-    plt.savefig(os.path.join(settings.outputdir, '_'.join(settings.words)), pad_inches=.1, dpi=600)
-    # plt.show()
+    f = plt.figure(figsize=(30, 10))
+    tsres.plot(style=['-.', '--', '-', ':'], linewidth=2, color='k', ax=f.gca())
+    plt.savefig(os.path.join(settings.outputdir, '_'.join(settings.words)), pad_inches=.25, dpi=600)
 
 
 if __name__ == '__main__':

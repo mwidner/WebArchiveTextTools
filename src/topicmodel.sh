@@ -20,8 +20,8 @@ mallet=$MALLET_HOME/bin/mallet
 networks="/Users/widner/Projects/DLCL/Alduy/French_Poli/venv/bin/python3 /Users/widner/Projects/DLCL/Alduy/French_Poli/src/mallet2graph.py"
 n_topics=(20 40 80)
 PROJECT=FrenchPoli
-inputdir=book_corpus/nouns_only/corpus/author/chunks
-outputdir=results/topics/nouns_only/author
+inputdir=book_corpus/results/mlp/chunks/book_corpus/results/mlp/nouns
+outputdir=book_corpus/results/mlp/topics
 stopwords=settings/stopwords.txt	# wherever they live
 
 if [ -d outputdir ];

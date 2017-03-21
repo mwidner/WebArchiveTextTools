@@ -65,6 +65,9 @@ def get_settings():
                         required=False,
                         help='''Path to a text file of more stopwords,
                         separated by newlines''')
+    parser.add_argument('--not-stopwords', dest='not_stopwords',
+                        required=False,
+                        help='Path to textfile of words not stopwords')
     parser.add_argument('-l', '--lang', dest='language', default='french',
                         required=False,
                         help='''Choose the language of the corpus
@@ -148,17 +151,20 @@ def get_stopwords(language):
         if (settings is not None) and settings.extra_stopwords:
             extra_stopwords = set(get_text_from_file(settings.extra_stopwords).split('\n'))
             stopwords = list(set(stopwords) | extra_stopwords)
+            if settings.not_stopwords:
+                non_stopwords = set(get_text_from_file(settings.not_stopwords).split('\n'))
+                stopwords = list(set(stopwords) - non_stopwords)
     except NameError:
         pass  # Can safely ignore this
     return stopwords
 
 
-# def strip_stopwords(words, stopwords):
-#     '''
-#     Remove all stop words from a word list
-#     Return the stripped text
-#     '''
-#     return [word for word in words if word.lower() not in stopwords]
+def strip_stopwords(words, stopwords):
+    '''
+    Remove all stop words from a word list
+    Return the stripped text
+    '''
+    return [word for word in words if word.lower() not in stopwords]
 
 
 def remove_blanks(words):
@@ -201,8 +207,8 @@ def basic_stats(sentences):
     stats['median_word_length'] = statistics.median(word_lengths)
     return stats
 
-
-def tokenize_text(text, language, remove_punctuation=False):
+### REMOVE stopwords
+def tokenize_text(text, language, stopwords=list(), remove_punctuation=False):
     '''
     Tokenize the given text string
     Return as a list of sentences that are lists of words
@@ -220,6 +226,10 @@ def tokenize_text(text, language, remove_punctuation=False):
     for sentence in sentence_tokens:
         words = word_tokenizer.tokenize(sentence)
         words = remove_blanks(words)
+        ### REMOVE
+        if len(stopwords):
+            words = strip_stopwords(words, stopwords)
+        ### /REMOVE
         if remove_punctuation:
             words = strip_punctuation(words)
         sentences.append(words)
@@ -429,6 +439,7 @@ def main():
         if settings.verbose:
             print('Tokenizing {}'.format(filename))
         corpus_tokenized[filename] = tokenize_text(text, settings.language,
+                                                   stopwords, ### REMOVE
                                                    settings.remove_punctuation)
 
         # Create POS-tagged corpus
