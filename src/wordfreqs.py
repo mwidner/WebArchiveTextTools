@@ -151,9 +151,9 @@ def get_stopwords(language):
         if (settings is not None) and settings.extra_stopwords:
             extra_stopwords = set(get_text_from_file(settings.extra_stopwords).split('\n'))
             stopwords = list(set(stopwords) | extra_stopwords)
-            if settings.not_stopwords:
-                non_stopwords = set(get_text_from_file(settings.not_stopwords).split('\n'))
-                stopwords = list(set(stopwords) - non_stopwords)
+        if (settings is not None) and settings.not_stopwords:
+            non_stopwords = set(get_text_from_file(settings.not_stopwords).split('\n'))
+            stopwords = list(set(stopwords) - non_stopwords)
     except NameError:
         pass  # Can safely ignore this
     return stopwords

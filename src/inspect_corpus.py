@@ -143,7 +143,7 @@ def main():
     columns = get_common_columns(settings.metadata_path)
     all_metadata = read_all_metadata(columns, settings.metadata_path)
     all_metadata = fix_filenames(all_metadata, settings.text_path)
-    # metadata.write_csv(settings.output_path, all_metadata)
+    metadata.write_csv(settings.output_path, all_metadata)
     dupes = check_for_duplicates(all_metadata)
     print(dupes)
     # compare_file_lists(all_metadata, settings.metadata_path, settings.text_path)

@@ -20,9 +20,9 @@ mallet=$MALLET_HOME/bin/mallet
 networks="/Users/widner/Projects/DLCL/Alduy/French_Poli/venv/bin/python3 /Users/widner/Projects/DLCL/Alduy/French_Poli/src/mallet2graph.py"
 n_topics=(20 40 80)
 PROJECT=FrenchPoli
-inputdir=book_corpus/results/mlp/chunks/book_corpus/results/mlp/nouns
-outputdir=book_corpus/results/mlp/topics
-stopwords=settings/stopwords.txt	# wherever they live
+inputdir=/Users/widner/Documents/Work/Teaching/Tolstoy/Corpora_export/AK
+outputdir=/Users/widner/Documents/Work/Teaching/Tolstoy/Corpora_export/AK/topics
+stopwords=/Users/widner/Documents/Work/Teaching/Tolstoy/Corpora_export/stopwords.txt	# wherever they live
 
 if [ -d outputdir ];
 	then
@@ -53,5 +53,5 @@ for topics in ${n_topics[@]}
 	$mallet run cc.mallet.topics.tui.TopicTrainer --input $outputdir/${PROJECT}.vectors --num-topics $topics --optimize-interval 20 --diagnostics-file $topics_output/diagnostics.xml --output-topic-keys $topics_output/topic-keys.txt --output-doc-topics $topics_output/doc-topics.txt --xml-topic-phrase-report $topics_output/topic-phrase-report.xml --xml-topic-report $topics_output/topic-report.xml --topic-word-weights-file $topics_output/topic-word-weights.txt --word-topic-counts-file $topics_output/word-topic-counts.txt --output-state $topics_output/state.gz
 
   ## Generate network graphs from topic models
-  $networks -d ${outputdir}/${topics}/doc-topics.txt -t ${outputdir}/${topics}/topic-keys.txt -o ${outputdir}/${topics}/network.gexf
+  # $networks -d ${outputdir}/${topics}/doc-topics.txt -t ${outputdir}/${topics}/topic-keys.txt -o ${outputdir}/${topics}/network.gexf
   done
