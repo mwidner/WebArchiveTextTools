@@ -1,0 +1,3 @@
+name,site,paths,title,author,date,content,filter
+'Fillon','www.fillon2017.fr','', 'div.entry-header h1',''meta[property="og:site_name"]'','div.post-date','div.entry-content',''
+'Fillon old blog', 'www.blog-fillon.com', '', 'div.divTitreArticle h2 a', 'span.publishedBy', 'div.date span.text', 'div.contenuArticle', ''

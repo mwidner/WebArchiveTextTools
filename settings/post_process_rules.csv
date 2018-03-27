@@ -8,3 +8,5 @@
 |date|,|(\d+ \w+ \d{4}) - \w+|
 |date|,|(\d+\w+ \d+)|
 |date|,|\w+ (\d+ \w+ \d{4})|
+|author|,|(François Fillon) 2017|
+|author|,|Publié par  |
