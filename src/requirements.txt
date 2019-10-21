@@ -3,7 +3,7 @@ bs4==0.0.1
 docutils==0.12
 facebook-sdk==1.0.0
 isodate==0.5.4
-nltk==3.2.1
+nltk==3.4.5
 numpy==1.11.0
 pandas==0.18.1
 python-dateutil==2.5.3
