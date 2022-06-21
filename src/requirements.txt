@@ -4,7 +4,7 @@ docutils==0.12
 facebook-sdk==1.0.0
 isodate==0.5.4
 nltk==3.2.1
-numpy==1.11.0
+numpy==1.22.0
 pandas==0.18.1
 python-dateutil==2.5.3
 pytz==2016.4
